@@ -8,12 +8,20 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
+
+	pokecache "github.com/dbunta/pokedex/internal"
 )
+
+var cache pokecache.Cache
 
 func startRepl() {
 
 	fmt.Print("Welcome to the Pokedex!\n")
-	config := config{next: "https://pokeapi.co/api/v2/location-area/", previous: ""}
+	config := config{next: "https://pokeapi.co/api/v2/location-area/?offset=0&limit=20", previous: ""}
+
+	duration := 10 * time.Second
+	cache = pokecache.NewCache(duration)
 
 	scanner := bufio.NewScanner(os.Stdin)
 	commands := getCommands()
@@ -107,19 +115,31 @@ func commandHelp(config *config) error {
 }
 
 func commandMap(config *config) error {
-	res, err := http.Get(config.next)
-	if err != nil {
-		return fmt.Errorf("error getting from pokeapi. %w", err)
-	}
-	defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return fmt.Errorf("error getting from pokeapi. %w", err)
+	cached, isCached := cache.Get(config.next)
+	var body []byte
+
+	if isCached {
+		//fmt.Printf("fetched %v from CACHE\n", config.next)
+		body = cached
+	} else {
+		//fmt.Printf("fetched %v from WEB\n", config.next)
+		res, err := http.Get(config.next)
+		if err != nil {
+			return fmt.Errorf("error getting from pokeapi. %w", err)
+		}
+		defer res.Body.Close()
+
+		body, err = io.ReadAll(res.Body)
+		if err != nil {
+			return fmt.Errorf("error getting from pokeapi. %w", err)
+		}
+		// fmt.Printf("added %v to CACHE\n", config.next)
+		cache.Add(config.next, body)
 	}
 
 	var areas locationAreaResult
-	err = json.Unmarshal(body, &areas)
+	err := json.Unmarshal(body, &areas)
 	if err != nil {
 		return fmt.Errorf("error getting from pokeapi. %w", err)
 	}
@@ -127,6 +147,8 @@ func commandMap(config *config) error {
 	config.previous = areas.Previous
 	config.next = areas.Next
 
+	// fmt.Printf("Next: %v\n", config.next)
+	fmt.Printf("Previous: %v\n", config.previous)
 	for _, area := range areas.Results {
 		fmt.Printf("%v\n", area.Name)
 	}
@@ -139,19 +161,29 @@ func commandMapBack(config *config) error {
 		config.previous = config.next
 	}
 
-	res, err := http.Get(config.previous)
-	if err != nil {
-		return fmt.Errorf("error getting from pokeapi. %w", err)
-	}
-	defer res.Body.Close()
+	cached, isCached := cache.Get(config.previous)
+	var body []byte
+	if isCached {
+		// fmt.Printf("fetched %v from CACHE\n", config.previous)
+		body = cached
+	} else {
+		// fmt.Printf("fetched %v from WEB\n", config.previous)
+		res, err := http.Get(config.previous)
+		if err != nil {
+			return fmt.Errorf("error getting from pokeapi. %w", err)
+		}
+		defer res.Body.Close()
 
-	body, err := io.ReadAll(res.Body)
-	if err != nil {
-		return fmt.Errorf("error getting from pokeapi. %w", err)
+		body, err = io.ReadAll(res.Body)
+		if err != nil {
+			return fmt.Errorf("error getting from pokeapi. %w", err)
+		}
+		// fmt.Printf("added %v to CACHE\n", config.previous)
+		cache.Add(config.previous, body)
 	}
 
 	var areas locationAreaResult
-	err = json.Unmarshal(body, &areas)
+	err := json.Unmarshal(body, &areas)
 	if err != nil {
 		return fmt.Errorf("error getting from pokeapi. %w", err)
 	}
@@ -161,6 +193,8 @@ func commandMapBack(config *config) error {
 	}
 	config.next = areas.Next
 
+	// fmt.Printf("Next: %v\n", config.next)
+	// fmt.Printf("Previous: %v\n", config.previous)
 	for _, area := range areas.Results {
 		fmt.Printf("%v\n", area.Name)
 	}
