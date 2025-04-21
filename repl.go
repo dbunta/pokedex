@@ -266,6 +266,7 @@ func commandMapBack(config *config, area string) error {
 }
 
 func commandExplore(config *config, area string) error {
+	fmt.Printf("Exploring %v...\n", area)
 	url := "https://pokeapi.co/api/v2/location-area/" + area + "/"
 
 	cached, isCached := cache.Get(url)
@@ -296,7 +297,7 @@ func commandExplore(config *config, area string) error {
 	}
 
 	for _, pe := range locationArea.PokemonEncounters {
-		fmt.Printf("%v\n", pe.Pokemon.Name)
+		fmt.Printf("- %v\n", pe.Pokemon.Name)
 	}
 
 	return nil
