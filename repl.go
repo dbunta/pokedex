@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"math/rand"
 	"net/http"
 	"os"
 	"strings"
@@ -35,11 +36,11 @@ func startRepl() {
 		}
 
 		if value, ok := commands[command[0]]; ok {
-			var area string
+			var arg string
 			if len(command) > 1 {
-				area = command[1]
+				arg = command[1]
 			}
-			if err := value.callback(&config, area); err != nil {
+			if err := value.callback(&config, arg); err != nil {
 				fmt.Print("\n\n----error----\n\n")
 				fmt.Print(err)
 			}
@@ -156,6 +157,11 @@ func getCommands() map[string]cliCommand {
 			name:        "explore",
 			description: "Gets specific map area",
 			callback:    commandExplore,
+		},
+		"catch": {
+			name:        "catch",
+			description: "Attempts to catch a specific pokemon",
+			callback:    commandCatch,
 		},
 	}
 }
@@ -300,6 +306,17 @@ func commandExplore(config *config, area string) error {
 		fmt.Printf("- %v\n", pe.Pokemon.Name)
 	}
 
+	return nil
+}
+
+func commandCatch(config *config, pokemon string) error {
+	test := rand.Intn(5)
+	fmt.Printf("\n%v\n", test)
+	if test > 2 {
+		fmt.Print("\ncaught it\n")
+		return nil
+	}
+	fmt.Print("\nmissed it\n")
 	return nil
 }
 
