@@ -452,6 +452,11 @@ func getCommands() map[string]cliCommand {
 			description: "Inspects a specific pokemon",
 			callback:    commandInspect,
 		},
+		"pokedex": {
+			name:        "pokedex",
+			description: "Lists all caught pokemon",
+			callback:    commandPokedex,
+		},
 	}
 }
 
@@ -644,15 +649,26 @@ func commandInspect(config *config, pokemonName string) error {
 		fmt.Printf("Weight: %v\n", pokemon.Weight)
 		fmt.Print("Stats:\n")
 		for _, stat := range pokemon.Stats {
-			fmt.Printf(" -%v: %v\n", stat.Stat.Name, stat.BaseStat)
+			fmt.Printf(" - %v: %v\n", stat.Stat.Name, stat.BaseStat)
 		}
 		fmt.Print("Types:\n")
 		for _, pokeType := range pokemon.Types {
-			fmt.Printf(" -%v\n", pokeType.Type.Name)
+			fmt.Printf(" - %v\n", pokeType.Type.Name)
 		}
 		return nil
 	}
 	fmt.Print("You have not caught that Pokemon.\n")
+	return nil
+}
+
+func commandPokedex(config *config, pokemonName string) error {
+	if len(pokedex) == 0 {
+		fmt.Print("You have not yet caught any Pokemon.\n")
+	} else {
+		for _, pokemon := range pokedex {
+			fmt.Printf(" - %v\n", pokemon.Name)
+		}
+	}
 	return nil
 }
 
